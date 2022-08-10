@@ -1,6 +1,7 @@
 (ns compressor.core
   (:require [clojure.tools.cli :refer [parse-opts]]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [compressor.compress :as compress]))
 
 (defn- usage
   [options]
@@ -20,10 +21,7 @@
 (defn -main
   [& args]
   (let [{:keys [options arguments summary]} (parse-opts args cli-options)]
-    (cond
-      (:help options) 
-      (usage summary)
-      (:compress options)
-      (println "ogey")
-      (empty? options)
+    (condp apply [options]
+      :help (usage summary)
+      :compress (compress/compress-jpg arguments) ;placeholder
       (usage summary))))
