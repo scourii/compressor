@@ -15,7 +15,8 @@
        (println)))
 
 (def cli-options 
-  [["-c" "--compress" "Compress a file"]
+  [["-C" "--convert" "Convert a file to a supported format."]
+   ["-c" "--compress" "Compress a file"]
    ["-h" "--help" "Print this help information"]
    ["-q" "--quality" "Quality reduction when compressed"]
    ["-n" "--new" "Path to new image"]
@@ -29,4 +30,5 @@
     (condp apply [options]
       :help (usage summary)
       :compress (compress/compress-jpg image :quality ^Float quality :name path)
+      :convert (println nil)
       (usage summary))) :verbose)))
