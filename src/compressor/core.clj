@@ -1,7 +1,8 @@
 (ns compressor.core
   (:require [clojure.tools.cli :refer [parse-opts]]
             [clojure.string :as str]
-            [compressor.compress :as compress]))
+            [compressor.compress :as compress]
+            [criterium.core :as bench]))
 
 (defn- usage
   [options]
@@ -15,13 +16,17 @@
 
 (def cli-options 
   [["-c" "--compress" "Compress a file"]
-   ["-h" "--help" "Print this help information"]])
-
+   ["-h" "--help" "Print this help information"]
+   ["-q" "--quality" "Quality reduction when compressed"]
+   ["-n" "--new" "Path to new image"]
+   ["-i" "--image" "Path to image"]])
 
 (defn -main
   [& args]
-  (let [{:keys [options arguments summary]} (parse-opts args cli-options)]
+  (bench/with-progress-reporting (bench/quick-bench
+  (let [{:keys [options arguments summary]} (parse-opts args cli-options)
+        [_ image quality path] arguments]
     (condp apply [options]
       :help (usage summary)
-      :compress (compress/compress-jpg arguments) ;placeholder
-      (usage summary))))
+      :compress (compress/compress-jpg image :quality ^Float quality :name path)
+      (usage summary))) :verbose)))
