@@ -15,11 +15,12 @@
        (println)))
 
 (def cli-options 
-  [["-C" "--convert" "Convert a file to a supported format."]
+  [["-C" "--convert" "Convert a file to a supported format"]
    ["-c" "--compress" "Compress a file"]
    ["-h" "--help" "Print this help information"]
    ["-q" "--quality" "Quality reduction when compressed"]
    ["-n" "--new" "Path to new image"]
+   ["-m" "--metadata" "Sets the metadata option to true"]
    ["-i" "--image" "Path to image"]])
 
 (defn -main
@@ -29,6 +30,6 @@
         [_ image quality path] arguments]
     (condp apply [options]
       :help (usage summary)
-      :compress (compress/compress-jpg image :quality ^Float quality :name path)
+      :compress (compress/compress-img image :quality ^Float quality :name path :metadata (:metadata options))
       :convert (println nil)
       (usage summary))) :verbose)))
