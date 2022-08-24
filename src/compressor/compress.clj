@@ -1,6 +1,8 @@
 (ns compressor.compress
-  (:require [clojure.java.io :as io])
-  (:import [javax.imageio ImageIO IIOImage ImageWriteParam]))
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str])
+  (:import [javax.imageio ImageIO IIOImage ImageWriteParam]
+           [java.util.zip ZipEntry ZipOutputStream]))
 
 (defn file-extension
   [file]
@@ -24,3 +26,15 @@
         (.write writer nil image params))
       (.dispose reader)
       (.dispose writer))))
+
+(defn compress-dir
+  [dir & {:keys [output]
+          :or {output dir}}]
+  (with-open [zip (ZipOutputStream. (io/output-stream output))]
+    (doseq [f (file-seq (io/file dir)) :when (.isFile f)]
+      (.putNextEntry zip (ZipEntry. (str/replace-first (.getPath f) dir "")))
+      (io/copy f zip)
+      (.closeEntry zip)))
+  (.write (io/file dir)))
+
+
