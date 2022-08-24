@@ -16,6 +16,7 @@
 
 (def cli-options 
   [["-c" "--compress" "Compress a file"]
+   ["-z" "--zip" "Compress all the files in a directory"]
    ["-h" "--help" "Print this help information"]
    ["-q" "--quality" "Quality reduction when compressed"]
    ["-n" "--new" "Path to new image"]
@@ -26,7 +27,10 @@
   [& args]
   (let [{:keys [options arguments summary]} (parse-opts args cli-options)
         [_ img quality path] arguments]
+    (println options)
+    (println arguments)
     (condp apply [options]
       :help (usage summary)
       :compress (compress/compress-img img :quality ^Float quality :new path :metadata (:metadata options))
+      :zip (compress/compress-dir img :output quality)
       (usage summary))))
