@@ -34,7 +34,6 @@
     (doseq [f (file-seq (io/file dir)) :when (.isFile f)]
       (.putNextEntry zip (ZipEntry. (str/replace-first (.getPath f) dir "")))
       (io/copy f zip)
-      (.closeEntry zip)))
-  (.write (io/file dir)))
+      (.closeEntry zip))))
 
 
