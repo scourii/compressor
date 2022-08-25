@@ -27,8 +27,6 @@
   [& args]
   (let [{:keys [options arguments summary]} (parse-opts args cli-options)
         [_ img quality path] arguments]
-    (println options)
-    (println arguments)
     (condp apply [options]
       :help (usage summary)
       :compress (compress/compress-img img :quality ^Float quality :new path :metadata (:metadata options))
