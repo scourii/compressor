@@ -24,9 +24,13 @@
 
 (defn -main
   [& args]
-  (let [{:keys [options summary]} (parse-opts args cli-options)]
+  (let [{:keys [options summary]} (parse-opts args cli-options)
+        file (if (contains? options :zip) (:zip options) (:compress options))
+        quality (:quality options)
+        output (:new options)
+        metadata? (:metadata options)]
     (condp apply [options]
       :help (usage summary)
-      :compress (compress/compress-img (:compress options) :quality ^Float (:quality options) :new (:new options) :metadata (:metadata options))
-      :zip (compress/compress-dir (:zip options) :output (:new options))
+      :compress (compress/compress-img file :quality ^Float quality :new output :metadata metadata?)
+      :zip (compress/compress-dir file :output output)
       (usage summary))))
