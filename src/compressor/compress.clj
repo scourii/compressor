@@ -1,11 +1,14 @@
 (ns compressor.compress
   (:require [clojure.string :as str]
-            [clojure.java.io :refer [file input-stream output-stream copy] :as io])
+            [clojure.java.io :refer [file input-stream output-stream copy] :as io]
+            [compressor.compress :as compress])
   (:import [javax.imageio ImageIO IIOImage ImageWriteParam]
            [java.util.zip ZipEntry ZipOutputStream]
            [java.io File]
-           [org.apache.commons.compress.archivers.sevenz SevenZFile SevenZOutputFile]
-           [org.apache.commons.io FilenameUtils]))
+           [org.apache.commons.compress.compressors CompressorStreamFactory]
+           [org.apache.commons.compress.archivers.tar TarArchiveOutputStream]
+           [org.apache.commons.io FilenameUtils]
+           [org.apache.commons.compress.utils IOUtils]))
 
 (defn file-extension
   [file]
@@ -22,17 +25,38 @@
    "xz"         ".tar.xz"})
 
 (defn create-archive-name
-  [name output compressor]
+  [output compressor]
   (let [extension   (get archive-extensions compressor)
-        output-path (FilenameUtils/normalizeNoEndSeperator output)
-        output      (if (= File/seperator output-path) "" output-path)
-        output-file (str output File/seperator name extension)]
+        output-file (str output extension)]
     output-file))
+
+(defn create-archive
+  [input-files output compressor]
+  (let [output-name       (create-archive-name output compressor)
+        fo                (output-stream output-name)
+        compressor-stream (.createCompressorOutputStream (CompressorStreamFactory.) compressor fo)
+        tar-output-stream (TarArchiveOutputStream. compressor-stream)
+        file-list         (mapv str (file-seq (file input-files)))]
+    (doseq [input-name file-list]
+      (let [folder? (.isDirectory (file input-name))]
+        (println "Folder:" folder?)
+        (doseq [f (if folder? (file-seq (file input-name)) [(file input-name)])]
+          (when (and (.isFile f) (not= output-name (.getPath f)))
+            (let [entry-name (.getPath (file input-name))
+                  entry (.createArchiveEntry tar-output-stream f entry-name)]
+              (.putArchiveEntry tar-output-stream entry)
+              (when (.isFile f)
+                (IOUtils/copy (input-stream f) tar-output-stream)
+                (println "Copied " f)
+                (.closeArchiveEntry tar-output-stream)))))))
+    (.finish tar-output-stream)
+    (.close tar-output-stream)
+    output-name))
 
 (defn compress-img
   [img & {:keys [quality new metadata]
           :or {quality 0.7 new img metadata false}}]
-  (let [ext (file-extension img)
+  (let [ext    (file-extension img)
         reader (.next (ImageIO/getImageReadersByFormatName ext))
         writer (.next (ImageIO/getImageWritersByFormatName ext))]
     (with-open [input-stream (ImageIO/createImageInputStream (file img))
