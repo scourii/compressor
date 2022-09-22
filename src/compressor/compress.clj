@@ -6,7 +6,7 @@
            [java.util.zip ZipEntry ZipOutputStream]
            [java.io File]
            [org.apache.commons.compress.compressors CompressorStreamFactory]
-           [org.apache.commons.compress.archivers.tar TarArchiveOutputStream]
+           [org.apache.commons.compress.archivers.tar TarArchiveOutputStream TarArchiveEntry]
            [org.apache.commons.io FilenameUtils]
            [org.apache.commons.compress.utils IOUtils]))
 
@@ -39,16 +39,13 @@
         file-list         (mapv str (file-seq (file input-files)))]
     (doseq [input-name file-list]
       (let [folder? (.isDirectory (file input-name))]
-        (println "Folder:" folder?)
         (doseq [f (if folder? (file-seq (file input-name)) [(file input-name)])]
-          (when (and (.isFile f) (not= output-name (.getPath f)))
-            (let [entry-name (.getPath (file input-name))
+            (let [entry-name (.getName (file input-name))
                   entry (.createArchiveEntry tar-output-stream f entry-name)]
               (.putArchiveEntry tar-output-stream entry)
               (when (.isFile f)
-                (IOUtils/copy (input-stream f) tar-output-stream)
-                (println "Copied " f)
-                (.closeArchiveEntry tar-output-stream)))))))
+                (IOUtils/copy f tar-output-stream))
+              (.closeArchiveEntry tar-output-stream)))))
     (.finish tar-output-stream)
     (.close tar-output-stream)
     output-name))
