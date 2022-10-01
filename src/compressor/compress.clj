@@ -1,20 +1,15 @@
 (ns compressor.compress
-  (:require [clojure.string :as str]
-            [clojure.java.io :refer [file input-stream output-stream copy] :as io]
+  (:require [clojure.java.io :refer [file output-stream]]
             [compressor.compress :as compress])
   (:import [javax.imageio ImageIO IIOImage ImageWriteParam]
-           [java.util.zip ZipEntry ZipOutputStream]
-           [java.io File]
            [org.apache.commons.compress.compressors CompressorStreamFactory]
-           [org.apache.commons.compress.archivers.tar TarArchiveOutputStream TarArchiveEntry]
+           [org.apache.commons.compress.archivers.tar TarArchiveOutputStream]
            [org.apache.commons.io FilenameUtils]
            [org.apache.commons.compress.utils IOUtils]))
 
 (defn file-extension
   [file]
   (second (re-find #"([^.][a-zA-Z0-9]+)$" file)))
-
-(def compressors ["bzip2" "deflate" "gz" "lz4-framed" "lzma" "xz"])
 
 (def archive-extensions
   {"bzip2"      ".tar.bz2"
@@ -30,8 +25,16 @@
         output-file (str output extension)]
     output-file))
 
+(defn- relativise-path
+  [base path]
+  (let [f    (file base)
+        uri      (.toURI f)
+        relative (.relativize uri (-> path file .toURI))]
+    (.getPath relative)))
+
 (defn create-archive
-  [input-files output compressor]
+  [input-files & {:keys [output compressor]
+                  :or {output input-files compressor "gz"}}]
   (let [output-name       (create-archive-name output compressor)
         fo                (output-stream output-name)
         compressor-stream (.createCompressorOutputStream (CompressorStreamFactory.) compressor fo)
@@ -40,7 +43,7 @@
     (doseq [input-name file-list]
       (let [folder? (.isDirectory (file input-name))]
         (doseq [f (if folder? (file-seq (file input-name)) [(file input-name)])]
-            (let [entry-name (.getName (file input-name))
+            (let [entry-name (relativise-path (FilenameUtils/getPath  input-name) (-> f .getPath))
                   entry (.createArchiveEntry tar-output-stream f entry-name)]
               (.putArchiveEntry tar-output-stream entry)
               (when (.isFile f)
@@ -68,15 +71,3 @@
         (.write writer nil image params))
       (.dispose reader)
       (.dispose writer))))
-
-(defn zip-dir
-  [dir & {:keys [output]
-          :or {output dir}}]
-  (with-open [zip (ZipOutputStream. (output-stream output))]
-    (doseq [f (file-seq (file dir)) :when (.isFile f)]
-      (.putNextEntry zip (ZipEntry. (str/replace-first (.getPath f) dir "")))
-      (copy f zip)
-      (.closeEntry zip))))
-
-
-
